@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Platform {
+  X
+  TIKTOK
+  INSTAGRAM
+  THREADS
+}
+
+model Kol {
+  id        String   @id @default(cuid())
+  name      String
+  handle    String
+  platform  Platform
+  category  String?
+  followers Int?
+  email     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  collaborations Collaboration[]
+
+  @@unique([handle, platform])
+  @@index([name])
+  @@index([platform])
+}
+
+model Collaboration {
+  id            String   @id @default(cuid())
+  kolId         String
+  kol           Kol      @relation(fields: [kolId], references: [id], onDelete: Cascade)
+  platform      Platform
+  postUrl       String
+  publishedAt   DateTime
+  feature       String
+  contentTheme  String
+  likes         Int      @default(0)
+  comments      Int      @default(0)
+  shares        Int      @default(0)
+  views         Int      @default(0)
+  price         Int
+  currency      String   @default("JPY")
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([publishedAt])
+  @@index([feature])
+  @@index([contentTheme])
+  @@index([platform])
+}
+
+model ImportLog {
+  id        String   @id @default(cuid())
+  source    String
+  rowsTotal Int
+  rowsAdded Int
+  rowsUpdated Int
+  createdAt DateTime @default(now())
+}
