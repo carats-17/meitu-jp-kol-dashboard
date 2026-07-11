@@ -1,0 +1,28 @@
+# Render.com — simpler GitHub deploy than Railway
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: meitu-jp-kol-dashboard
+    runtime: node
+    plan: starter
+    region: singapore
+    branch: main
+    buildCommand: npm ci && npx prisma generate && DATABASE_URL="file:./prisma/build.db" npx prisma db push --skip-generate && npm run build
+    startCommand: npx prisma db push --skip-generate && npx next start -H 0.0.0.0 -p $PORT
+    healthCheckPath: /login
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: DATABASE_URL
+        value: file:/data/prod.db
+      - key: AUTH_USERNAME
+        sync: false
+      - key: AUTH_PASSWORD
+        sync: false
+      - key: AUTH_SECRET
+        generateValue: true
+    disk:
+      name: kol-data
+      mountPath: /data
+      sizeGB: 1

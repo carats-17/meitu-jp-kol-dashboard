@@ -1,67 +1,65 @@
-# 固定公网网址部署（不依赖你的电脑是否开机）
+# 固定网址部署（不依赖你的电脑）
 
-目标：同事打开一个**固定链接**（类似韩国版），你电脑关机也能用。
-
-推荐平台：**Railway**（常开容器 + 固定 `*.up.railway.app` 域名）
+不要用 Railway 的话，推荐下面两个（任选一个）。
 
 ---
 
-## 一次性部署步骤（约 10–15 分钟）
+## 方案 A：Zeabur（推荐，操作最简单）
 
-### 1. 把代码推到 GitHub（若还没有仓库）
+适合不想折腾的人，界面相对直观。
 
-在本机项目目录执行（把 `YOUR_GITHUB_USER` 换成你的）：
+1. 打开 https://zeabur.com ，用 **GitHub** 登录  
+2. **Deploy New Project** → 选仓库 `carats-17/meitu-jp-kol-dashboard`  
+3. 选 **Hong Kong / Singapore** 区域  
+4. 等构建完成，Zeabur 会自动给一个固定域名  
+5. 在服务 **Variables** 里添加：
 
-```bash
-cd ~/Projects/meitu-jp-kol-dashboard
-git remote add origin https://github.com/YOUR_GITHUB_USER/meitu-jp-kol-dashboard.git
-git add -A
-git commit -m "Prepare cloud deploy"
-git push -u origin HEAD
-```
-
-### 2. 注册 Railway 并部署
-
-1. 打开 https://railway.app → 用 GitHub 登录  
-2. **New Project** → **Deploy from GitHub repo** → 选这个仓库  
-3. 部署完成后点服务 → **Settings** → **Networking** → **Generate Domain**  
-   → 得到固定网址，例如：  
-   `https://meitu-jp-kol-dashboard-production.up.railway.app`
-
-### 3. 配置环境变量（Variables）
-
-| 变量 | 示例值 |
-|------|--------|
-| `DATABASE_URL` | `file:/data/prod.db` |
+| 变量 | 值 |
+|------|-----|
+| `DATABASE_URL` | `file:/data/prod.db`（若平台提示用别的路径，按其文档） |
 | `AUTH_USERNAME` | `admin` |
-| `AUTH_PASSWORD` | 你们约定的密码 |
-| `AUTH_SECRET` | 一串随机长字符 |
+| `AUTH_PASSWORD` | 你们的密码 |
+| `AUTH_SECRET` | 任意长字符串 |
 
-### 4. 挂载持久磁盘（否则重启丢数据）
+6. 打开 Zeabur 给你的 `https://xxxx.zeabur.app`，登录使用  
 
-服务 → **Settings** → **Volumes** → 添加 Volume：
-
-- Mount Path: `/data`
-
-### 5. 导入数据
-
-打开固定网址 → 登录 → 「数据导入」页上传 Excel/CSV。  
-之后同事都用这个固定链接即可，**与你电脑是否开机无关**。
+若 Zeabur 对 SQLite 路径有特殊要求，把报错发我即可改。
 
 ---
 
-## 同事怎么用
+## 方案 B：Render（国外常用，稳定）
 
-1. 浏览器打开：`https://xxxx.up.railway.app`（你生成的那个）  
-2. 输入统一用户名 / 密码登录  
-3. 正常使用看板  
-
-网址固定，可收藏、可发到飞书群。
+1. 打开 https://dashboard.render.com ，用 **GitHub** 登录  
+2. **New +** → **Blueprint** → 选这个仓库（会读 `render.yaml`）  
+   或 **New +** → **Web Service** → 选仓库  
+3. 若手填 Web Service：
+   - **Build Command**  
+     `npm ci && npx prisma generate && DATABASE_URL="file:./prisma/build.db" npx prisma db push --skip-generate && npm run build`
+   - **Start Command**  
+     `npx prisma db push --skip-generate && npx next start -H 0.0.0.0 -p $PORT`
+4. 添加环境变量（同上表）  
+5. 添加 **Persistent Disk**，挂载路径 `/data`  
+6. 选 **Starter** 方案（免费版会休眠，不满足「随时可开」）  
+7. 部署成功后得到：`https://xxxx.onrender.com`
 
 ---
 
-## 注意
+## 方案 C：Vercel（Next.js 最顺，但要换数据库）
 
-- Cloudflare Tunnel / 本机 IP：**电脑关机网站就没了**，不满足你的前提。  
-- Railway 免费额度有限，正式长期用建议升级付费或迁公司服务器。  
-- 若公司有美图内网域名，可把 Railway 域名再绑到 `kol-jp.xxx.com`。
+Vercel 不能可靠使用本机 SQLite 文件，需要再接云数据库（如 Turso）。  
+若你选这个，告诉我，我帮你改数据库配置。
+
+---
+
+## 对比
+
+| | 固定网址 | 是否要电脑开机 | 难度 |
+|--|----------|----------------|------|
+| Zeabur | ✅ `*.zeabur.app` | ❌ 不需要 | 低 |
+| Render | ✅ `*.onrender.com` | ❌ 不需要 | 中 |
+| Vercel | ✅ `*.vercel.app` | ❌ 不需要 | 中（要改库） |
+| Railway | ✅ | ❌ 不需要 | 你已踩坑，可弃用 |
+
+---
+
+部署好后把固定链接发我，我帮你看登录页是否正常。
