@@ -6,7 +6,7 @@
     "dev": "prisma generate && next dev",
     "build": "prisma generate && next build",
     "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
-    "start:prod": "next start -H 0.0.0.0 -p ${PORT:-3000}",
+    "start:prod": "prisma db push --skip-generate && next start -H 0.0.0.0 -p ${PORT:-3000}",
     "dev:lan": "prisma generate && next dev -H 0.0.0.0 -p 3000",
     "lint": "eslint",
     "postinstall": "prisma generate",
