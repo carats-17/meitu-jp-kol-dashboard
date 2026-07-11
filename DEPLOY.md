@@ -1,65 +1,63 @@
-# 固定网址部署（不依赖你的电脑）
+# 最简单上线方式（公司网打不开 Render / Railway 时用这个）
 
-不要用 Railway 的话，推荐下面两个（任选一个）。
+目标：固定网址 `https://xxx.vercel.app`，电脑关机也能用。  
+只用 **手机流量** 完成注册（不要用公司 Wi‑Fi）。
 
 ---
 
-## 方案 A：Zeabur（推荐，操作最简单）
+## 一共 3 步
 
-适合不想折腾的人，界面相对直观。
+### ① 手机建数据库（Turso，免费）
 
-1. 打开 https://zeabur.com ，用 **GitHub** 登录  
-2. **Deploy New Project** → 选仓库 `carats-17/meitu-jp-kol-dashboard`  
-3. 选 **Hong Kong / Singapore** 区域  
-4. 等构建完成，Zeabur 会自动给一个固定域名  
-5. 在服务 **Variables** 里添加：
+1. 手机关掉公司 Wi‑Fi，用流量打开：https://turso.tech  
+2. 用 **GitHub** 登录  
+3. 新建数据库，名字例如：`beautycam-jp-kol`  
+4. 复制两样东西（后面要填）：
+   - **Database URL**（`libsql://...` 开头）
+   - **Auth Token**
 
-| 变量 | 值 |
-|------|-----|
-| `DATABASE_URL` | `file:/data/prod.db`（若平台提示用别的路径，按其文档） |
+### ② 手机打开 Vercel 导入项目
+
+1. 手机流量打开：https://vercel.com  
+2. **Continue with GitHub** → 选仓库 `meitu-jp-kol-dashboard`  
+3. 点 **Import** / **Deploy** 前，先加环境变量：
+
+| Name | Value |
+|------|--------|
+| `DATABASE_URL` | `file:./prisma/dev.db` |
+| `TURSO_DATABASE_URL` | ① 里复制的 `libsql://...` |
+| `TURSO_AUTH_TOKEN` | ① 里复制的 Token |
 | `AUTH_USERNAME` | `admin` |
 | `AUTH_PASSWORD` | 你们的密码 |
-| `AUTH_SECRET` | 任意长字符串 |
+| `AUTH_SECRET` | `beautycam-jp-kol-secret-2026` |
 
-6. 打开 Zeabur 给你的 `https://xxxx.zeabur.app`，登录使用  
+4. 点 Deploy，等成功  
+5. 得到固定链接：`https://xxxx.vercel.app`
 
-若 Zeabur 对 SQLite 路径有特殊要求，把报错发我即可改。
+### ③ 初始化表结构（电脑终端跑一次）
 
----
+公司电脑终端执行（把下面两行换成你的真实值）：
 
-## 方案 B：Render（国外常用，稳定）
+```bash
+cd ~/Projects/meitu-jp-kol-dashboard
+export TURSO_DATABASE_URL="libsql://你的地址.turso.io"
+export TURSO_AUTH_TOKEN="你的token"
+export DATABASE_URL="$TURSO_DATABASE_URL"
+npx prisma db push
+```
 
-1. 打开 https://dashboard.render.com ，用 **GitHub** 登录  
-2. **New +** → **Blueprint** → 选这个仓库（会读 `render.yaml`）  
-   或 **New +** → **Web Service** → 选仓库  
-3. 若手填 Web Service：
-   - **Build Command**  
-     `npm ci && npx prisma generate && DATABASE_URL="file:./prisma/build.db" npx prisma db push --skip-generate && npm run build`
-   - **Start Command**  
-     `npx prisma db push --skip-generate && npx next start -H 0.0.0.0 -p $PORT`
-4. 添加环境变量（同上表）  
-5. 添加 **Persistent Disk**，挂载路径 `/data`  
-6. 选 **Starter** 方案（免费版会休眠，不满足「随时可开」）  
-7. 部署成功后得到：`https://xxxx.onrender.com`
+然后打开 Vercel 网址 → 用 admin + 密码登录。
 
 ---
 
-## 方案 C：Vercel（Next.js 最顺，但要换数据库）
+## 以后更新
 
-Vercel 不能可靠使用本机 SQLite 文件，需要再接云数据库（如 Turso）。  
-若你选这个，告诉我，我帮你改数据库配置。
-
----
-
-## 对比
-
-| | 固定网址 | 是否要电脑开机 | 难度 |
-|--|----------|----------------|------|
-| Zeabur | ✅ `*.zeabur.app` | ❌ 不需要 | 低 |
-| Render | ✅ `*.onrender.com` | ❌ 不需要 | 中 |
-| Vercel | ✅ `*.vercel.app` | ❌ 不需要 | 中（要改库） |
-| Railway | ✅ | ❌ 不需要 | 你已踩坑，可弃用 |
+本地改代码 → `git push` → Vercel 自动重新部署。  
+不用再打开 Render / Railway / Zeabur。
 
 ---
 
-部署好后把固定链接发我，我帮你看登录页是否正常。
+## 为什么不用 Render
+
+你公司网络打不开 Render 控制台。  
+Vercel + 手机流量授权一次即可，之后只靠 GitHub。
