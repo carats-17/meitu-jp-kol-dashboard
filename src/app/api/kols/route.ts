@@ -9,7 +9,6 @@ function parseFilters(searchParams: URLSearchParams): KolFilters {
     q: searchParams.get("q") ?? undefined,
     platform: platform ? (platform as Platform) : undefined,
     feature: searchParams.get("feature") ?? undefined,
-    theme: searchParams.get("theme") ?? undefined,
     minFollowers: searchParams.get("minFollowers")
       ? Number(searchParams.get("minFollowers"))
       : undefined,
@@ -21,6 +20,9 @@ function parseFilters(searchParams: URLSearchParams): KolFilters {
       : undefined,
     dateFrom: searchParams.get("dateFrom") ?? undefined,
     dateTo: searchParams.get("dateTo") ?? undefined,
+    sortBy: (searchParams.get("sortBy") as KolFilters["sortBy"]) ?? undefined,
+    sortOrder: (searchParams.get("sortOrder") as "asc" | "desc") ?? undefined,
+    limit: searchParams.get("limit") ? Number(searchParams.get("limit")) : undefined,
   };
 }
 
@@ -29,12 +31,14 @@ export async function GET(request: NextRequest) {
     const filters = parseFilters(request.nextUrl.searchParams);
     const withOptions = request.nextUrl.searchParams.get("withOptions") === "1";
 
-    const [kols, options] = await Promise.all([
+    const [allKols, options] = await Promise.all([
       getKolsWithStats(filters),
       withOptions ? getFilterOptions() : Promise.resolve(null),
     ]);
 
-    return NextResponse.json({ kols, options });
+    const kols = filters.limit ? allKols.slice(0, filters.limit) : allKols;
+
+    return NextResponse.json({ kols, total: allKols.length, options });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Failed to fetch KOLs" }, { status: 500 });

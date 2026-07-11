@@ -12,11 +12,14 @@ export async function POST(request: NextRequest) {
 
     const lower = file.name.toLowerCase();
     const supported =
-      lower.endsWith(".csv") || lower.endsWith(".xlsx") || lower.endsWith(".xls");
+      lower.endsWith(".csv") ||
+      lower.endsWith(".xlsx") ||
+      lower.endsWith(".xls") ||
+      lower.endsWith(".xlsm");
 
     if (!supported) {
       return NextResponse.json(
-        { error: "仅支持 .csv、.xlsx、.xls 格式" },
+        { error: "仅支持 .csv、.xlsx、.xls、.xlsm 格式" },
         { status: 400 },
       );
     }

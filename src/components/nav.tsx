@@ -2,6 +2,7 @@ import Link from "next/link";
 
 const links = [
   { href: "/", label: "达人看板" },
+  { href: "/features", label: "推广功能" },
   { href: "/import", label: "数据导入" },
 ];
 
@@ -14,7 +15,7 @@ export function Nav() {
             M
           </div>
           <div>
-            <p className="text-sm font-semibold text-zinc-900">Meitu JP KOL Hub</p>
+            <p className="text-sm font-semibold text-zinc-900">BeautyCam JP KOL Hub</p>
             <p className="text-xs text-zinc-500">日本达人合作资源库</p>
           </div>
         </div>

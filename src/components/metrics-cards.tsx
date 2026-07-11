@@ -4,9 +4,9 @@ import { formatCurrency, formatNumber } from "@/lib/utils";
 
 export function MetricsCards({ metrics }: { metrics: DashboardMetrics }) {
   const cards = [
-    { label: "合作达人", value: formatNumber(metrics.totalKols), sub: "近 12 个月" },
-    { label: "合作发文", value: formatNumber(metrics.totalCollabs), sub: "近 12 个月" },
-    { label: "总合作价格（日元）", value: formatCurrency(metrics.totalSpend), sub: "近 12 个月" },
+    { label: "合作达人", value: formatNumber(metrics.totalKols), sub: "2025.7 – 2026.6" },
+    { label: "合作发文", value: formatNumber(metrics.totalCollabs), sub: "2025.7 – 2026.6" },
+    { label: "总合作价格（日元）", value: formatCurrency(metrics.totalSpend), sub: "合作价格(JPY)" },
     { label: "平均合作价格", value: formatCurrency(metrics.avgPrice), sub: "单次合作" },
   ];
 

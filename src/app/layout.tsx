@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Meitu JP KOL Hub",
-  description: "日本 Meitu KOL 合作资源库数据看板",
+  title: "BeautyCam JP KOL Hub",
+  description: "日本 BeautyCam KOL 合作资源库数据看板",
 };
 
 export default function RootLayout({
