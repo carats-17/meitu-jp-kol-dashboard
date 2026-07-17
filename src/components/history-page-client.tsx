@@ -206,7 +206,19 @@ export function HistoryPageClient() {
           <p className="py-10 text-center text-sm text-zinc-500">加载中...</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="min-w-[1080px] table-fixed text-sm">
+              <colgroup>
+                <col className="w-[175px]" />
+                <col className="w-[95px]" />
+                <col className="w-[95px]" />
+                <col className="w-[90px]" />
+                <col className="w-[110px]" />
+                <col className="w-[100px]" />
+                <col className="w-[100px]" />
+                <col className="w-[90px]" />
+                <col className="w-[100px]" />
+                <col className="w-[125px]" />
+              </colgroup>
               <thead className="bg-mint-50/60 text-left text-xs text-zinc-500">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">达人</th>
@@ -224,15 +236,18 @@ export function HistoryPageClient() {
               <tbody>
                 {kols.map((kol) => (
                   <tr key={kol.id} className="border-t border-mint-50 hover:bg-mint-50/40">
-                    <td className="px-4 py-3">
+                    <td className="overflow-hidden px-4 py-3">
                       <Link
                         href={kolDetailHref(kol.id)}
                         onClick={() => saveHistoryReturnTo(listHref)}
-                        className="font-medium text-mint-600 hover:underline"
+                        title={kol.name}
+                        className="block truncate font-medium text-mint-600 hover:underline"
                       >
                         {kol.name}
                       </Link>
-                      <p className="text-xs text-zinc-400">@{kol.handle}</p>
+                      <p className="truncate text-xs text-zinc-400" title={`@${kol.handle}`}>
+                        @{kol.handle}
+                      </p>
                     </td>
                     <td className="px-4 py-3">{displayPlatform(kol.platform)}</td>
                     <td className="px-4 py-3 text-right">

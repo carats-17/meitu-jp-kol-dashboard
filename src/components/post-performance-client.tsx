@@ -20,14 +20,14 @@ type BucketSummary = {
   views: number;
   engagement: number;
   spend: number;
-  cpv: number;
-  byTheme: Map<string, { kols: Set<string>; records: number; views: number; engagement: number; cpv: number }>;
-  byPlatform: Map<string, { kols: Set<string>; records: number; views: number; engagement: number; cpv: number }>;
+  cpe: number;
+  byTheme: Map<string, { kols: Set<string>; records: number; views: number; engagement: number; cpe: number }>;
+  byPlatform: Map<string, { kols: Set<string>; records: number; views: number; engagement: number; cpe: number }>;
 };
 
 type PerformanceSummary = Pick<
   BucketSummary,
-  "collabKols" | "records" | "views" | "engagement" | "spend" | "cpv"
+  "collabKols" | "records" | "views" | "engagement" | "spend" | "cpe"
 >;
 
 function weekKey(d: Date) {
@@ -99,7 +99,7 @@ function summarize(posts: PostPerformanceRow[], period: Period): BucketSummary[]
         views: 0,
         engagement: 0,
         spend: 0,
-        cpv: 0,
+        cpe: 0,
         byTheme: new Map(),
         byPlatform: new Map(),
       });
@@ -113,7 +113,7 @@ function summarize(posts: PostPerformanceRow[], period: Period): BucketSummary[]
 
     const themeKey = p.feature;
     if (!bucket.byTheme.has(themeKey)) {
-      bucket.byTheme.set(themeKey, { kols: new Set(), records: 0, views: 0, engagement: 0, cpv: 0 });
+      bucket.byTheme.set(themeKey, { kols: new Set(), records: 0, views: 0, engagement: 0, cpe: 0 });
     }
     const theme = bucket.byTheme.get(themeKey)!;
     theme.kols.add(p.kolId);
@@ -123,7 +123,7 @@ function summarize(posts: PostPerformanceRow[], period: Period): BucketSummary[]
 
     const platformKey = displayPlatform(p.platform, p.contentTheme, false);
     if (!bucket.byPlatform.has(platformKey)) {
-      bucket.byPlatform.set(platformKey, { kols: new Set(), records: 0, views: 0, engagement: 0, cpv: 0 });
+      bucket.byPlatform.set(platformKey, { kols: new Set(), records: 0, views: 0, engagement: 0, cpe: 0 });
     }
     const plat = bucket.byPlatform.get(platformKey)!;
     plat.kols.add(p.kolId);
@@ -134,15 +134,15 @@ function summarize(posts: PostPerformanceRow[], period: Period): BucketSummary[]
 
   const result = [...map.values()].sort((a, b) => b.key.localeCompare(a.key));
   for (const b of result) {
-    b.cpv = b.views > 0 ? b.spend / b.views : 0;
+    b.cpe = b.engagement > 0 ? b.spend / b.engagement : 0;
 
     const kolSet = new Set<string>();
     for (const row of b.byPlatform.values()) {
-      row.cpv = row.views > 0 ? b.spend / row.views : 0;
+      row.cpe = row.engagement > 0 ? b.spend / row.engagement : 0;
       row.kols.forEach((id) => kolSet.add(id));
     }
     for (const row of b.byTheme.values()) {
-      row.cpv = row.views > 0 ? b.spend / row.views : 0;
+      row.cpe = row.engagement > 0 ? b.spend / row.engagement : 0;
     }
     b.collabKols = kolSet.size;
   }
@@ -169,7 +169,7 @@ function summarizeTotal(posts: PostPerformanceRow[]): PerformanceSummary {
     views,
     engagement,
     spend,
-    cpv: views > 0 ? spend / views : 0,
+    cpe: engagement > 0 ? spend / engagement : 0,
   };
 }
 
@@ -388,7 +388,7 @@ export function PostPerformanceClient() {
         records: v.records,
         views: v.views,
         engagement: v.engagement,
-        cpv: v.views > 0 ? v.spend / v.views : 0,
+        cpe: v.engagement > 0 ? v.spend / v.engagement : 0,
       }))
       .sort((a, b) => b.views - a.views)
       .slice(0, 10);
@@ -418,7 +418,7 @@ export function PostPerformanceClient() {
         records: v.records,
         views: v.views,
         engagement: v.engagement,
-        cpv: v.views > 0 ? v.spend / v.views : 0,
+        cpe: v.engagement > 0 ? v.spend / v.engagement : 0,
       }))
       .sort((a, b) => b.views - a.views)
       .slice(0, 10);
@@ -479,7 +479,7 @@ export function PostPerformanceClient() {
               <StatCard label="总曝光" value={formatNumber(activeSummary.views)} />
               <StatCard label="总互动" value={formatNumber(activeSummary.engagement)} />
               <StatCard label="花费" value={formatCurrency(activeSummary.spend)} />
-              <StatCard label="CPV" value={`JPY ${activeSummary.cpv.toFixed(1)}`} />
+              <StatCard label="CPE" value={`JPY ${activeSummary.cpe.toFixed(1)}`} />
             </div>
 
             <TrendChart
@@ -512,7 +512,7 @@ export function PostPerformanceClient() {
                 <th className="px-3 py-2 text-right">曝光</th>
                 <th className="px-3 py-2 text-right">互动</th>
                 <th className="px-3 py-2 text-right">花费</th>
-                <th className="px-3 py-2 text-right">CPV</th>
+                <th className="px-3 py-2 text-right">CPE</th>
               </tr>
             </thead>
             <tbody>
@@ -524,7 +524,7 @@ export function PostPerformanceClient() {
                   <td className="px-3 py-2 text-right">{formatNumber(b.views)}</td>
                   <td className="px-3 py-2 text-right">{formatNumber(b.engagement)}</td>
                   <td className="px-3 py-2 text-right">{formatCurrency(b.spend)}</td>
-                  <td className="px-3 py-2 text-right">JPY {b.cpv.toFixed(1)}</td>
+                  <td className="px-3 py-2 text-right">JPY {b.cpe.toFixed(1)}</td>
                 </tr>
               ))}
             </tbody>
@@ -556,7 +556,22 @@ export function PostPerformanceClient() {
             <p className="py-10 text-center text-sm text-zinc-500">暂无贴文数据</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="min-w-[1360px] table-fixed text-sm">
+                <colgroup>
+                  <col className="w-[105px]" />
+                  <col className="w-[170px]" />
+                  <col className="w-[105px]" />
+                  <col className="w-[145px]" />
+                  <col className="w-[100px]" />
+                  <col className="w-[85px]" />
+                  <col className="w-[80px]" />
+                  <col className="w-[80px]" />
+                  <col className="w-[80px]" />
+                  <col className="w-[100px]" />
+                  <col className="w-[85px]" />
+                  <col className="w-[115px]" />
+                  <col className="w-[70px]" />
+                </colgroup>
                 <thead className="bg-mint-50/60 text-left text-xs text-zinc-500">
                   <tr>
                     <SortableHeader label="日期" field="publishedAt" activeField={sortBy} order={sortOrder} onSort={toggleSort} />
@@ -585,14 +600,20 @@ export function PostPerformanceClient() {
                     return (
                       <tr key={post.id} className="border-t border-mint-50 hover:bg-mint-50/40">
                         <td className="px-4 py-3 whitespace-nowrap">{formatDate(post.publishedAt)}</td>
-                        <td className="px-4 py-3">
-                          <Link href={`/kols/${post.kolId}`} className="font-medium text-mint-600 hover:underline">
+                        <td className="overflow-hidden px-4 py-3">
+                          <Link
+                            href={`/kols/${post.kolId}`}
+                            title={post.name}
+                            className="block truncate font-medium text-mint-600 hover:underline"
+                          >
                             {post.name}
                           </Link>
-                          <p className="text-xs text-zinc-400">@{post.handle}</p>
+                          <p className="truncate text-xs text-zinc-400" title={`@${post.handle}`}>
+                            @{post.handle}
+                          </p>
                         </td>
                         <td className="px-4 py-3">{displayPlatform(post.platform, post.contentTheme, true)}</td>
-                        <td className="px-4 py-3">{post.feature}</td>
+                        <td className="truncate px-4 py-3" title={post.feature}>{post.feature}</td>
                         <td className={`px-4 py-3 text-right ${views.hidden ? "font-medium text-amber-600" : ""}`}>
                           {views.text}
                         </td>
@@ -626,7 +647,7 @@ function RankingCard({
   rows,
 }: {
   title: string;
-  rows: { name: string; kols: number; records: number; views: number; engagement: number; cpv: number }[];
+  rows: { name: string; kols: number; records: number; views: number; engagement: number; cpe: number }[];
 }) {
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm">
@@ -639,7 +660,7 @@ function RankingCard({
               <th className="px-3 py-2 text-right">合作网红</th>
               <th className="px-3 py-2 text-right">记录</th>
               <th className="px-3 py-2 text-right">曝光</th>
-              <th className="px-3 py-2 text-right">CPV</th>
+              <th className="px-3 py-2 text-right">CPE</th>
             </tr>
           </thead>
           <tbody>
@@ -649,7 +670,7 @@ function RankingCard({
                 <td className="px-3 py-2 text-right">{formatNumber(r.kols)}</td>
                 <td className="px-3 py-2 text-right">{formatNumber(r.records)}</td>
                 <td className="px-3 py-2 text-right">{formatNumber(r.views)}</td>
-                <td className="px-3 py-2 text-right">JPY {r.cpv.toFixed(1)}</td>
+                <td className="px-3 py-2 text-right">JPY {r.cpe.toFixed(1)}</td>
               </tr>
             ))}
           </tbody>
