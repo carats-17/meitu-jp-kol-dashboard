@@ -25,6 +25,11 @@ type BucketSummary = {
   byPlatform: Map<string, { kols: Set<string>; records: number; views: number; engagement: number; cpv: number }>;
 };
 
+type PerformanceSummary = Pick<
+  BucketSummary,
+  "collabKols" | "records" | "views" | "engagement" | "spend" | "cpv"
+>;
+
 function weekKey(d: Date) {
   const x = new Date(d);
   const day = x.getDay();
@@ -145,6 +150,29 @@ function summarize(posts: PostPerformanceRow[], period: Period): BucketSummary[]
   return result;
 }
 
+function summarizeTotal(posts: PostPerformanceRow[]): PerformanceSummary {
+  const kolIds = new Set<string>();
+  let views = 0;
+  let engagement = 0;
+  let spend = 0;
+
+  for (const post of posts) {
+    kolIds.add(post.kolId);
+    views += post.organicViews;
+    engagement += post.totalEngagement;
+    spend += post.price;
+  }
+
+  return {
+    collabKols: kolIds.size,
+    records: posts.length,
+    views,
+    engagement,
+    spend,
+    cpv: views > 0 ? spend / views : 0,
+  };
+}
+
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-white p-4 shadow-sm">
@@ -154,7 +182,15 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function TrendChart({ buckets }: { buckets: BucketSummary[] }) {
+function TrendChart({
+  buckets,
+  selectedKey,
+  onSelect,
+}: {
+  buckets: BucketSummary[];
+  selectedKey?: string | null;
+  onSelect?: (key: string | null) => void;
+}) {
   if (buckets.length === 0) return null;
   const series = [...buckets].reverse().slice(-12);
   const max = Math.max(...series.map((b) => b.records), 1);
@@ -179,7 +215,9 @@ function TrendChart({ buckets }: { buckets: BucketSummary[] }) {
     <div className="mt-4 rounded-xl border border-mint-50 bg-mint-50/30 p-4">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-xs text-zinc-500">合作网红数</p>
-        <p className="text-[10px] text-zinc-400">蓝绿色柱状 + 深青折线</p>
+        <p className="text-[10px] text-zinc-400">
+          {onSelect ? "点击月份查看该月汇总" : "蓝绿色柱状 + 深青折线"}
+        </p>
       </div>
       <svg viewBox={`0 0 ${w} ${h}`} className="h-[260px] w-full">
         {[0, 0.25, 0.5, 0.75, 1].map((t) => {
@@ -197,15 +235,38 @@ function TrendChart({ buckets }: { buckets: BucketSummary[] }) {
         {series.map((b, i) => {
           const x = padL + i * slot + (slot - barW) / 2;
           const barH = (b.records / max) * plotH;
+          const selected = selectedKey === b.key;
           return (
-            <g key={b.key}>
+            <g
+              key={b.key}
+              className={onSelect ? "cursor-pointer" : undefined}
+              onClick={() => onSelect?.(selected ? null : b.key)}
+              role={onSelect ? "button" : undefined}
+              tabIndex={onSelect ? 0 : undefined}
+              aria-label={onSelect ? `查看 ${b.label} 汇总` : undefined}
+              onKeyDown={(event) => {
+                if (onSelect && (event.key === "Enter" || event.key === " ")) {
+                  event.preventDefault();
+                  onSelect(selected ? null : b.key);
+                }
+              }}
+            >
+              {onSelect && (
+                <rect
+                  x={padL + i * slot}
+                  y={padT}
+                  width={slot}
+                  height={plotH + padB}
+                  fill="transparent"
+                />
+              )}
               <rect
                 x={x}
                 y={padT + plotH - barH}
                 width={barW}
                 height={barH}
-                fill="#5fc8b5"
-                opacity="0.85"
+                fill={selected ? "#e8879b" : "#5fc8b5"}
+                opacity={selected ? "1" : "0.85"}
                 rx={3}
               />
               <text
@@ -239,6 +300,7 @@ function TrendChart({ buckets }: { buckets: BucketSummary[] }) {
 export function PostPerformanceClient() {
   const defaultRange = useMemo(() => monthRange(), []);
   const [period, setPeriod] = useState<Period>("month");
+  const [selectedBucketKey, setSelectedBucketKey] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     ...defaultPostFilters,
     dateFrom: defaultRange.dateFrom,
@@ -293,7 +355,15 @@ export function PostPerformanceClient() {
     () => (period === "week" ? bestWeeksByMonth(buckets) : buckets),
     [buckets, period],
   );
-  const activeBucket = displayBuckets[0];
+  const historicalSummary = useMemo(() => summarizeTotal(allPosts), [allPosts]);
+  const selectedBucket = useMemo(
+    () =>
+      selectedBucketKey
+        ? displayBuckets.find((bucket) => bucket.key === selectedBucketKey) ?? null
+        : null,
+    [displayBuckets, selectedBucketKey],
+  );
+  const activeSummary: PerformanceSummary = selectedBucket ?? historicalSummary;
 
   const themeRanking = useMemo(() => {
     const map = new Map<
@@ -360,38 +430,63 @@ export function PostPerformanceClient() {
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-zinc-900">成效分析</h2>
-            <p className="text-xs text-zinc-500">按月/周切换查看汇总看板</p>
+            <p className="text-xs text-zinc-500">
+              {selectedBucket
+                ? `${selectedBucket.label} 汇总数据`
+                : "全部历史数据汇总"}
+            </p>
           </div>
-          <div className="inline-flex rounded-lg border border-[var(--border)] bg-mint-50 p-1">
-            <button
-              type="button"
-              onClick={() => setPeriod("month")}
-              className={`rounded-md px-3 py-1.5 text-xs ${period === "month" ? "bg-white font-medium text-mint-700" : "text-zinc-600"}`}
-            >
-              月
-            </button>
-            <button
-              type="button"
-              onClick={() => setPeriod("week")}
-              className={`rounded-md px-3 py-1.5 text-xs ${period === "week" ? "bg-white font-medium text-mint-700" : "text-zinc-600"}`}
-            >
-              周
-            </button>
+          <div className="flex items-center gap-2">
+            {selectedBucket && (
+              <button
+                type="button"
+                onClick={() => setSelectedBucketKey(null)}
+                className="text-xs font-medium text-mint-700 hover:underline"
+              >
+                查看全部历史
+              </button>
+            )}
+            <div className="inline-flex rounded-lg border border-[var(--border)] bg-mint-50 p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setPeriod("month");
+                  setSelectedBucketKey(null);
+                }}
+                className={`rounded-md px-3 py-1.5 text-xs ${period === "month" ? "bg-white font-medium text-mint-700" : "text-zinc-600"}`}
+              >
+                月
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPeriod("week");
+                  setSelectedBucketKey(null);
+                }}
+                className={`rounded-md px-3 py-1.5 text-xs ${period === "week" ? "bg-white font-medium text-mint-700" : "text-zinc-600"}`}
+              >
+                周
+              </button>
+            </div>
           </div>
         </div>
 
-        {activeBucket ? (
+        {allPosts.length > 0 ? (
           <>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-              <StatCard label="合作网红" value={formatNumber(activeBucket.collabKols)} />
-              <StatCard label="合作/推送记录" value={formatNumber(activeBucket.records)} />
-              <StatCard label="总曝光" value={formatNumber(activeBucket.views)} />
-              <StatCard label="总互动" value={formatNumber(activeBucket.engagement)} />
-              <StatCard label="花费" value={formatCurrency(activeBucket.spend)} />
-              <StatCard label="CPV" value={`JPY ${activeBucket.cpv.toFixed(1)}`} />
+              <StatCard label="合作网红" value={formatNumber(activeSummary.collabKols)} />
+              <StatCard label="合作/推送记录" value={formatNumber(activeSummary.records)} />
+              <StatCard label="总曝光" value={formatNumber(activeSummary.views)} />
+              <StatCard label="总互动" value={formatNumber(activeSummary.engagement)} />
+              <StatCard label="花费" value={formatCurrency(activeSummary.spend)} />
+              <StatCard label="CPV" value={`JPY ${activeSummary.cpv.toFixed(1)}`} />
             </div>
 
-            <TrendChart buckets={displayBuckets} />
+            <TrendChart
+              buckets={displayBuckets}
+              selectedKey={selectedBucketKey}
+              onSelect={period === "month" ? setSelectedBucketKey : undefined}
+            />
           </>
         ) : (
           <p className="py-8 text-center text-sm text-zinc-500">暂无汇总数据</p>
