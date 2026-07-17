@@ -1,5 +1,4 @@
 import type { Platform } from "@prisma/client";
-import { backfillFollowers } from "./follower-backfill";
 import { normalizeFeatureName } from "./feature-normalization";
 import { inferInstagramFormat, isViewsHidden } from "./platform-display";
 import { prisma } from "./prisma";
@@ -60,7 +59,7 @@ const COLUMN_ALIASES: Record<string, string[]> = {
   totalEngagement: ["总互动数", "總互動數", "互动总数", "总互动", "互动数"],
   er: ["er", "互动率", "engagementrate"],
   metricShiftSource: ["是否授权", "是否授權"],
-  cpmJpy: ["自然量cpm日币", "cpm日币", "cpm日元"],
+  cpmJpy: ["自然量cpm日币", "cpm日币", "cpm日元", "cpm"],
   cpmUsd: ["自然量cpm美金", "cpm美金", "cpm美元"],
   cpeJpy: ["自然量cpe日币", "cpe日币", "cpe日元"],
   cpeUsd: ["自然量cpe美金", "cpe美金", "cpe美元"],
@@ -868,20 +867,14 @@ async function importRows(rows: Record<string, string>[], source: string): Promi
     },
   });
 
-  let followerBackfill;
-  try {
-    followerBackfill = await backfillFollowers();
-  } catch (e) {
-    errors.push(`粉丝数联网补全失败：${e instanceof Error ? e.message : "未知错误"}`);
-  }
-
+  // Follower scraping is slow and often times out on serverless (Vercel).
+  // Keep it as a separate manual action via /api/kols/backfill-followers.
   return {
     rowsTotal: rows.length,
     rowsAdded,
     rowsUpdated,
     rowsDeleted: deleted.count,
     errors,
-    followerBackfill,
     sheetSummary: [...sheetStats.entries()].map(([name, stats]) => ({
       name,
       rows: stats.imported + stats.failed,

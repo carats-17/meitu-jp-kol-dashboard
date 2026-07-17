@@ -15,7 +15,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:setup": "prisma migrate dev && npx tsx prisma/seed.ts",
-    "import:xlsx": "tsx scripts/import-xlsx.ts"
+    "import:xlsx": "tsx scripts/import-xlsx.ts",
+    "db:push:turso": "tsx scripts/push-turso.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

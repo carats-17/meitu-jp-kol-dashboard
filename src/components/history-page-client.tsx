@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KolHistoryRow } from "@/lib/analytics-service";
+import { saveHistoryReturnTo } from "@/components/kol-detail-back-link";
 import { SortableHeader, useSortState } from "@/components/sortable-header";
 import { displayPlatform } from "@/lib/platform-display";
 import type { KolSortField } from "@/lib/types";
@@ -12,24 +14,98 @@ const TIER_LABELS: Record<KolHistoryRow["performanceTier"], string> = {
   excellent: "效果佳",
   normal: "效果普通",
   poor: "效果差",
+  unrated: "无法评级",
 };
 
 const TIER_STYLES: Record<KolHistoryRow["performanceTier"], string> = {
   excellent: "bg-emerald-50 text-emerald-700 border-emerald-100",
   normal: "bg-amber-50 text-amber-700 border-amber-100",
   poor: "bg-zinc-100 text-zinc-600 border-zinc-200",
+  unrated: "bg-slate-50 text-slate-500 border-slate-200",
 };
 
 type HistorySortField = KolSortField | "totalViews" | "totalEngagement";
 
+function historyStateFromParams(params: URLSearchParams) {
+  return {
+    q: params.get("q") ?? "",
+    platform: params.get("platform") ?? "",
+    tier: params.get("tier") ?? "",
+    sortBy: (params.get("sortBy") as HistorySortField) || "avgEngagement",
+    sortOrder: (params.get("sortOrder") === "asc" ? "asc" : "desc") as "asc" | "desc",
+  };
+}
+
+function historyStateToSearchParams(state: {
+  q: string;
+  platform: string;
+  tier: string;
+  sortBy: HistorySortField;
+  sortOrder: "asc" | "desc";
+}): URLSearchParams {
+  const params = new URLSearchParams();
+  if (state.q) params.set("q", state.q);
+  if (state.platform) params.set("platform", state.platform);
+  if (state.tier) params.set("tier", state.tier);
+  if (state.sortBy !== "avgEngagement") params.set("sortBy", state.sortBy);
+  if (state.sortOrder !== "desc") params.set("sortOrder", state.sortOrder);
+  return params;
+}
+
 export function HistoryPageClient() {
-  const [q, setQ] = useState("");
-  const [platform, setPlatform] = useState("");
-  const [tier, setTier] = useState("");
-  const { sortBy, sortOrder, toggleSort } = useSortState<HistorySortField>("avgEngagement", "desc");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const skipWrite = useRef(false);
+
+  const [q, setQ] = useState(() => historyStateFromParams(searchParams).q);
+  const [platform, setPlatform] = useState(
+    () => historyStateFromParams(searchParams).platform,
+  );
+  const [tier, setTier] = useState(() => historyStateFromParams(searchParams).tier);
+  const initialSort = historyStateFromParams(searchParams);
+  const { sortBy, sortOrder, toggleSort, setSortBy, setSortOrder } =
+    useSortState<HistorySortField>(initialSort.sortBy, initialSort.sortOrder);
   const [allKols, setAllKols] = useState<KolHistoryRow[]>([]);
   const [kols, setKols] = useState<KolHistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Browser back / return from detail: restore filters from URL
+  useEffect(() => {
+    const next = historyStateFromParams(searchParams);
+    skipWrite.current = true;
+    setQ(next.q);
+    setPlatform(next.platform);
+    setTier(next.tier);
+    setSortBy(next.sortBy);
+    setSortOrder(next.sortOrder);
+  }, [searchParams, setSortBy, setSortOrder]);
+
+  // User edits → sync into URL (debounced)
+  useEffect(() => {
+    if (skipWrite.current) {
+      skipWrite.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      const params = historyStateToSearchParams({ q, platform, tier, sortBy, sortOrder });
+      const qs = params.toString();
+      const next = qs ? `${pathname}?${qs}` : pathname;
+      const current = searchParams.toString()
+        ? `${pathname}?${searchParams.toString()}`
+        : pathname;
+      if (next !== current) {
+        router.replace(next, { scroll: false });
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [q, platform, tier, sortBy, sortOrder, pathname, router, searchParams]);
+
+  const listHref = useMemo(() => {
+    const params = historyStateToSearchParams({ q, platform, tier, sortBy, sortOrder });
+    const qs = params.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  }, [q, platform, tier, sortBy, sortOrder, pathname]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -67,6 +143,12 @@ export function HistoryPageClient() {
     setTier("");
   };
 
+  const kolDetailHref = (kolId: string) => {
+    const params = new URLSearchParams();
+    params.set("from", listHref);
+    return `/kols/${kolId}?${params.toString()}`;
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
@@ -79,7 +161,9 @@ export function HistoryPageClient() {
           >
             <p className="text-xs font-medium">{TIER_LABELS[t]}</p>
             <p className="mt-1 text-2xl font-semibold">{tierCounts[t]}</p>
-            <p className="mt-1 text-xs opacity-80">平均 ER {t === "excellent" ? "≥3%" : t === "poor" ? "<1%" : "1-3%"}</p>
+            <p className="mt-1 text-xs opacity-80">
+              平均 ER {t === "excellent" ? "≥3%" : t === "poor" ? "<1%" : "1-3%"}
+            </p>
           </button>
         ))}
       </div>
@@ -141,20 +225,34 @@ export function HistoryPageClient() {
                 {kols.map((kol) => (
                   <tr key={kol.id} className="border-t border-mint-50 hover:bg-mint-50/40">
                     <td className="px-4 py-3">
-                      <Link href={`/kols/${kol.id}`} className="font-medium text-mint-600 hover:underline">
+                      <Link
+                        href={kolDetailHref(kol.id)}
+                        onClick={() => saveHistoryReturnTo(listHref)}
+                        className="font-medium text-mint-600 hover:underline"
+                      >
                         {kol.name}
                       </Link>
                       <p className="text-xs text-zinc-400">@{kol.handle}</p>
                     </td>
                     <td className="px-4 py-3">{displayPlatform(kol.platform)}</td>
-                    <td className="px-4 py-3 text-right">{kol.followers ? formatNumber(kol.followers) : "—"}</td>
+                    <td className="px-4 py-3 text-right">
+                      {kol.followers ? formatNumber(kol.followers) : "—"}
+                    </td>
                     <td className="px-4 py-3 text-right">{kol.collabCount}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(kol.avgPrice)}</td>
-                    <td className="px-4 py-3 text-right">{formatNumber(kol.totalViews)}</td>
+                    <td className="px-4 py-3 text-right">
+                      {kol.performanceTier === "unrated" ? "—" : formatNumber(kol.totalViews)}
+                    </td>
                     <td className="px-4 py-3 text-right">{formatNumber(kol.totalEngagement)}</td>
-                    <td className="px-4 py-3 text-right font-medium">{kol.avgEngagement.toFixed(2)}%</td>
+                    <td className="px-4 py-3 text-right font-medium">
+                      {kol.performanceTier === "unrated"
+                        ? "—"
+                        : `${kol.avgEngagement.toFixed(2)}%`}
+                    </td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-full border px-2 py-0.5 text-xs ${TIER_STYLES[kol.performanceTier]}`}>
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-xs ${TIER_STYLES[kol.performanceTier]}`}
+                      >
                         {TIER_LABELS[kol.performanceTier]}
                       </span>
                     </td>

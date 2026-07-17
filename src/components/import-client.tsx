@@ -88,7 +88,7 @@ export function ImportClient() {
         <h2 className="text-lg font-semibold text-zinc-900">从表格导入</h2>
         <p className="mt-2 text-sm leading-6 text-zinc-600">
           支持直接上传 <strong>.xlsx / .xls / .xlsm</strong> 或 .csv 文件。每次导入会<strong>清空旧数据</strong>，
-          仅保留本次上传文件中的记录。导入完成后会自动联网补全缺失的粉丝数（同一达人多平台时只抓一个平台）。
+          仅保留本次上传文件中的记录。粉丝数优先用表格里的值；缺失时可在导入后再点「联网补全粉丝数」。
         </p>
         <button
           type="button"
@@ -114,7 +114,7 @@ export function ImportClient() {
             disabled={!file || loading}
             className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "导入并补全粉丝数中…" : "开始导入"}
+            {loading ? "导入中…" : "开始导入"}
           </button>
           <button
             type="button"

@@ -1,6 +1,7 @@
-import type { Platform, Prisma } from "@prisma/client";
+import type { Collaboration, Platform, Prisma } from "@prisma/client";
 import { featureAliasesFor, normalizeFeatureName } from "./feature-normalization";
 import { collabsForErAverage } from "./kol-service";
+import { isViewsHidden } from "./platform-display";
 import { prisma } from "./prisma";
 import type { KolFilters, PostFilters, PostSortField } from "./types";
 import { avgEngagementRate, engagementRate, engagementTotal } from "./utils";
@@ -69,7 +70,7 @@ export type KolHistoryRow = {
   avgPrice: number;
   totalViews: number;
   totalEngagement: number;
-  performanceTier: "excellent" | "normal" | "poor";
+  performanceTier: "excellent" | "normal" | "poor" | "unrated";
   features: string[];
   lastCollabDate: string | null;
 };
@@ -127,10 +128,43 @@ function followerBucket(followers: number | null): string {
   return "10万-50万";
 }
 
-function performanceTier(avgEr: number): KolHistoryRow["performanceTier"] {
+function performanceTier(avgEr: number): Exclude<KolHistoryRow["performanceTier"], "unrated"> {
   if (avgEr >= 3) return "excellent";
   if (avgEr < 1) return "poor";
   return "normal";
+}
+
+/** IG Post often has no public impression count — don't treat 0 ER as 效果差. */
+function isIgPostViewsUncountable(collabs: Collaboration[]): boolean {
+  if (collabs.length === 0) return false;
+  return collabs.every((c) => {
+    if (String(c.platform).toUpperCase() !== "INSTAGRAM") return false;
+    const views = c.organicViews > 0 ? c.organicViews : c.views;
+    const engagement = engagementTotal(c);
+    if (c.viewsHidden || isViewsHidden(c.platform, views, engagement)) return true;
+    const theme = (c.contentTheme || "").trim();
+    const isIgPost =
+      theme === "IG Post" ||
+      theme === "" ||
+      (!/reels?/i.test(theme) && !/stor(y|ies)/i.test(theme));
+    return isIgPost && views === 0;
+  });
+}
+
+function resolveHistoryPerformanceTier(
+  avgEr: number,
+  collabs: Collaboration[],
+  platform: Platform,
+): KolHistoryRow["performanceTier"] {
+  const tier = performanceTier(avgEr);
+  if (
+    tier === "poor" &&
+    String(platform).toUpperCase() === "INSTAGRAM" &&
+    isIgPostViewsUncountable(collabs)
+  ) {
+    return "unrated";
+  }
+  return tier;
 }
 
 export async function getLibraryOverview(): Promise<LibraryOverview> {
@@ -422,7 +456,11 @@ export async function getKolHistory(
         avgPrice: collabs.length > 0 ? Math.round(totalSpend / collabs.length) : 0,
         totalViews,
         totalEngagement,
-        performanceTier: performanceTier(avgEngagement),
+        performanceTier: resolveHistoryPerformanceTier(
+          avgEngagement,
+          collabs,
+          kol.platform,
+        ),
         features: [...new Set(collabs.map((c) => normalizeFeatureName(c.feature)))],
         lastCollabDate: collabs[0]?.publishedAt.toISOString() ?? null,
       };

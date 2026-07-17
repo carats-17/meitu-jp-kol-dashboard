@@ -31,22 +31,24 @@
 | `AUTH_PASSWORD` | 你们的密码 |
 | `AUTH_SECRET` | `beautycam-jp-kol-secret-2026` |
 
+重要：`DATABASE_URL` 必须保持 `file:...`，**不要**写成 `libsql://`。运行时真正连 Turso 的是 `TURSO_*` 两个变量。
+
 4. 点 Deploy，等成功  
 5. 得到固定链接：`https://xxxx.vercel.app`
 
 ### ③ 初始化表结构（电脑终端跑一次）
 
-公司电脑终端执行（把下面两行换成你的真实值）：
+Prisma CLI **不能**直接对 `libsql://` 做 `db push`（会报 P1012：URL 必须以 `file:` 开头）。请用项目自带脚本：
 
 ```bash
 cd ~/Projects/meitu-jp-kol-dashboard
 export TURSO_DATABASE_URL="libsql://你的地址.turso.io"
 export TURSO_AUTH_TOKEN="你的token"
-export DATABASE_URL="$TURSO_DATABASE_URL"
-npx prisma db push
+# 不要改 DATABASE_URL，保持 .env 里的 file:./prisma/dev.db
+npm run db:push:turso
 ```
 
-然后打开 Vercel 网址 → 用 admin + 密码登录。
+然后打开 Vercel 网址 → 用 admin + 密码登录 → 在「导入」页上传 Excel。
 
 ---
 

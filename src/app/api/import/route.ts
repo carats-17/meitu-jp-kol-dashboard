@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { importFromFile } from "@/lib/import";
 
+export const maxDuration = 300;
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -30,6 +32,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "导入失败" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "导入失败",
+        detail: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    );
   }
 }
