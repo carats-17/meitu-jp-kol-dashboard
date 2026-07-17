@@ -206,37 +206,37 @@ export function HistoryPageClient() {
           <p className="py-10 text-center text-sm text-zinc-500">加载中...</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-[1080px] table-fixed text-sm">
+            <table className="w-full table-fixed text-xs xl:text-sm">
               <colgroup>
-                <col className="w-[175px]" />
-                <col className="w-[95px]" />
-                <col className="w-[95px]" />
-                <col className="w-[90px]" />
-                <col className="w-[110px]" />
-                <col className="w-[100px]" />
-                <col className="w-[100px]" />
-                <col className="w-[90px]" />
-                <col className="w-[100px]" />
-                <col className="w-[125px]" />
+                <col className="w-[12%]" />
+                <col className="w-[8%]" />
+                <col className="w-[9%]" />
+                <col className="w-[8%]" />
+                <col className="w-[12%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[9%]" />
+                <col className="w-[10%]" />
+                <col className="w-[12%]" />
               </colgroup>
               <thead className="bg-mint-50/60 text-left text-xs text-zinc-500">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">达人</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">平台</th>
-                  <SortableHeader label="粉丝数" field="followers" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" />
-                  <SortableHeader label="合作次数" field="collabCount" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" />
-                  <SortableHeader label="平均单价" field="avgPrice" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" />
-                  <SortableHeader label="总曝光" field="totalViews" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" />
-                  <SortableHeader label="总互动" field="totalEngagement" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" />
-                  <SortableHeader label="平均 ER" field="avgEngagement" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" />
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">效果评级</th>
-                  <SortableHeader label="最近合作" field="lastCollabDate" activeField={sortBy} order={sortOrder} onSort={toggleSort} />
+                  <th className="px-2 py-3 text-left text-xs font-medium text-zinc-500">达人</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-zinc-500">平台</th>
+                  <SortableHeader label="粉丝数" field="followers" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" compact />
+                  <SortableHeader label="合作次数" field="collabCount" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" compact />
+                  <SortableHeader label="平均单价" field="avgPrice" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" compact />
+                  <SortableHeader label="总曝光" field="totalViews" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" compact />
+                  <SortableHeader label="总互动" field="totalEngagement" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" compact />
+                  <SortableHeader label="平均 ER" field="avgEngagement" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" compact />
+                  <th className="px-2 py-3 text-left text-xs font-medium text-zinc-500">效果评级</th>
+                  <SortableHeader label="最近合作" field="lastCollabDate" activeField={sortBy} order={sortOrder} onSort={toggleSort} compact />
                 </tr>
               </thead>
               <tbody>
                 {kols.map((kol) => (
                   <tr key={kol.id} className="border-t border-mint-50 hover:bg-mint-50/40">
-                    <td className="overflow-hidden px-4 py-3">
+                    <td className="overflow-hidden px-2 py-3">
                       <Link
                         href={kolDetailHref(kol.id)}
                         onClick={() => saveHistoryReturnTo(listHref)}
@@ -249,29 +249,29 @@ export function HistoryPageClient() {
                         @{kol.handle}
                       </p>
                     </td>
-                    <td className="px-4 py-3">{displayPlatform(kol.platform)}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-2 py-3">{displayPlatform(kol.platform)}</td>
+                    <td className="px-2 py-3 text-right">
                       {kol.followers ? formatNumber(kol.followers) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-right">{kol.collabCount}</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(kol.avgPrice)}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-2 py-3 text-right">{kol.collabCount}</td>
+                    <td className="px-2 py-3 text-right">{formatCurrency(kol.avgPrice)}</td>
+                    <td className="px-2 py-3 text-right">
                       {kol.performanceTier === "unrated" ? "—" : formatNumber(kol.totalViews)}
                     </td>
-                    <td className="px-4 py-3 text-right">{formatNumber(kol.totalEngagement)}</td>
-                    <td className="px-4 py-3 text-right font-medium">
+                    <td className="px-2 py-3 text-right">{formatNumber(kol.totalEngagement)}</td>
+                    <td className="px-2 py-3 text-right font-medium">
                       {kol.performanceTier === "unrated"
                         ? "—"
                         : `${kol.avgEngagement.toFixed(2)}%`}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 py-3">
                       <span
                         className={`rounded-full border px-2 py-0.5 text-xs ${TIER_STYLES[kol.performanceTier]}`}
                       >
                         {TIER_LABELS[kol.performanceTier]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="whitespace-nowrap px-2 py-3">
                       {kol.lastCollabDate ? formatDate(kol.lastCollabDate) : "—"}
                     </td>
                   </tr>

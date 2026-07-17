@@ -9,12 +9,21 @@ type Props = {
   order: "asc" | "desc";
   onSort: (field: string) => void;
   align?: "left" | "right";
+  compact?: boolean;
 };
 
-export function SortableHeader({ label, field, activeField, order, onSort, align = "left" }: Props) {
+export function SortableHeader({
+  label,
+  field,
+  activeField,
+  order,
+  onSort,
+  align = "left",
+  compact = false,
+}: Props) {
   const active = activeField === field;
   return (
-    <th className={`px-4 py-3 ${align === "right" ? "text-right" : "text-left"}`}>
+    <th className={`${compact ? "px-2 py-3" : "px-4 py-3"} ${align === "right" ? "text-right" : "text-left"}`}>
       <button
         type="button"
         onClick={() => onSort(field)}

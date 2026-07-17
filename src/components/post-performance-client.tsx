@@ -556,37 +556,37 @@ export function PostPerformanceClient() {
             <p className="py-10 text-center text-sm text-zinc-500">暂无贴文数据</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-[1360px] table-fixed text-sm">
+              <table className="w-full table-fixed text-xs xl:text-sm">
                 <colgroup>
-                  <col className="w-[105px]" />
-                  <col className="w-[170px]" />
-                  <col className="w-[105px]" />
-                  <col className="w-[145px]" />
-                  <col className="w-[100px]" />
-                  <col className="w-[85px]" />
-                  <col className="w-[80px]" />
-                  <col className="w-[80px]" />
-                  <col className="w-[80px]" />
-                  <col className="w-[100px]" />
-                  <col className="w-[85px]" />
-                  <col className="w-[115px]" />
-                  <col className="w-[70px]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[7%]" />
                 </colgroup>
                 <thead className="bg-mint-50/60 text-left text-xs text-zinc-500">
                   <tr>
-                    <SortableHeader label="日期" field="publishedAt" activeField={sortBy} order={sortOrder} onSort={toggleSort} />
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">达人</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">平台</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">推广主题</th>
-                    <SortableHeader label="曝光" field="organicViews" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" />
-                    <SortableHeader label="点赞" field="likes" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" />
-                    <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500">评论</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500">转发</th>
-                    <SortableHeader label="收藏" field="saves" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" />
-                    <SortableHeader label="总互动" field="totalEngagement" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" />
-                    <SortableHeader label="ER" field="er" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" />
-                    <SortableHeader label="价格" field="price" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" />
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">链接</th>
+                    <SortableHeader label="日期" field="publishedAt" activeField={sortBy} order={sortOrder} onSort={toggleSort} compact />
+                    <th className="px-2 py-3 text-left text-xs font-medium text-zinc-500">达人</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-zinc-500">平台</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-zinc-500">推广主题</th>
+                    <SortableHeader label="曝光" field="organicViews" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" compact />
+                    <SortableHeader label="点赞" field="likes" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" compact />
+                    <th className="px-2 py-3 text-right text-xs font-medium text-zinc-500">评论</th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-zinc-500">转发</th>
+                    <SortableHeader label="收藏" field="saves" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" compact />
+                    <SortableHeader label="总互动" field="totalEngagement" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" compact />
+                    <SortableHeader label="ER" field="er" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" compact />
+                    <SortableHeader label="价格" field="price" activeField={sortBy} order={sortOrder} onSort={toggleSort} align="right" compact />
+                    <th className="px-2 py-3 text-left text-xs font-medium text-zinc-500">链接</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -599,8 +599,8 @@ export function PostPerformanceClient() {
                     );
                     return (
                       <tr key={post.id} className="border-t border-mint-50 hover:bg-mint-50/40">
-                        <td className="px-4 py-3 whitespace-nowrap">{formatDate(post.publishedAt)}</td>
-                        <td className="overflow-hidden px-4 py-3">
+                        <td className="whitespace-nowrap px-2 py-3">{formatDate(post.publishedAt)}</td>
+                        <td className="overflow-hidden px-2 py-3">
                           <Link
                             href={`/kols/${post.kolId}`}
                             title={post.name}
@@ -612,19 +612,19 @@ export function PostPerformanceClient() {
                             @{post.handle}
                           </p>
                         </td>
-                        <td className="px-4 py-3">{displayPlatform(post.platform, post.contentTheme, true)}</td>
-                        <td className="truncate px-4 py-3" title={post.feature}>{post.feature}</td>
-                        <td className={`px-4 py-3 text-right ${views.hidden ? "font-medium text-amber-600" : ""}`}>
+                        <td className="truncate px-2 py-3">{displayPlatform(post.platform, post.contentTheme, true)}</td>
+                        <td className="truncate px-2 py-3" title={post.feature}>{post.feature}</td>
+                        <td className={`px-2 py-3 text-right ${views.hidden ? "font-medium text-amber-600" : ""}`}>
                           {views.text}
                         </td>
-                        <td className="px-4 py-3 text-right">{formatNumber(post.likes)}</td>
-                        <td className="px-4 py-3 text-right">{formatNumber(post.comments)}</td>
-                        <td className="px-4 py-3 text-right">{formatNumber(post.shares)}</td>
-                        <td className="px-4 py-3 text-right">{formatNumber(post.saves)}</td>
-                        <td className="px-4 py-3 text-right">{formatNumber(post.totalEngagement)}</td>
-                        <td className="px-4 py-3 text-right font-medium text-mint-600">{post.er.toFixed(2)}%</td>
-                        <td className="px-4 py-3 text-right">{formatCurrency(post.price)}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-2 py-3 text-right">{formatNumber(post.likes)}</td>
+                        <td className="px-2 py-3 text-right">{formatNumber(post.comments)}</td>
+                        <td className="px-2 py-3 text-right">{formatNumber(post.shares)}</td>
+                        <td className="px-2 py-3 text-right">{formatNumber(post.saves)}</td>
+                        <td className="px-2 py-3 text-right">{formatNumber(post.totalEngagement)}</td>
+                        <td className="px-2 py-3 text-right font-medium text-mint-600">{post.er.toFixed(2)}%</td>
+                        <td className="px-2 py-3 text-right">{formatCurrency(post.price)}</td>
+                        <td className="px-2 py-3">
                           <a href={post.postUrl} target="_blank" rel="noopener noreferrer" className="text-mint-600 hover:underline">
                             打开
                           </a>
