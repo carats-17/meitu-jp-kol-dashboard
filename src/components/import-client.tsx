@@ -42,19 +42,26 @@ export function ImportClient() {
   const [loading, setLoading] = useState(false);
   const [backfillLoading, setBackfillLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [requestError, setRequestError] = useState("");
   const [backfillResult, setBackfillResult] = useState<ImportResult["followerBackfill"] | null>(null);
 
   async function handleImport() {
     if (!file) return;
     setLoading(true);
     setResult(null);
+    setRequestError("");
 
     try {
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch("/api/import", { method: "POST", body: formData });
-      const data = await res.json();
-      setResult(data);
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || typeof data.rowsTotal !== "number") {
+        throw new Error(data?.detail || data?.error || `上传失败（HTTP ${res.status}）`);
+      }
+      setResult(data as ImportResult);
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : "上传失败，请重试");
     } finally {
       setLoading(false);
     }
@@ -127,7 +134,12 @@ export function ImportClient() {
         </div>
         {loading && (
           <p className="mt-2 text-xs text-zinc-500">
-            导入后会对缺失粉丝数的达人联网抓取，约需 2–3 分钟，请勿关闭页面。
+            正在解析并写入线上数据库，请勿关闭页面。
+          </p>
+        )}
+        {requestError && (
+          <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            导入失败：{requestError}
           </p>
         )}
       </div>

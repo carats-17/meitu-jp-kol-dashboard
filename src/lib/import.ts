@@ -1,4 +1,5 @@
-import type { Platform } from "@prisma/client";
+import type { Platform, Prisma } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import { normalizeFeatureName } from "./feature-normalization";
 import { inferInstagramFormat, isViewsHidden } from "./platform-display";
 import { prisma } from "./prisma";
@@ -717,16 +718,14 @@ async function importRows(rows: Record<string, string>[], source: string): Promi
     }
   }
 
-  const deleted = await prisma.collaboration.deleteMany();
-  await prisma.kol.deleteMany();
-
-  let rowsAdded = 0;
-  let rowsUpdated = 0;
+  const previousCollabCount = await prisma.collaboration.count();
   const errors: string[] = [];
   const sheetStats = new Map<
     string,
     { imported: number; added: number; updated: number; failed: number }
   >();
+  const kolsByKey = new Map<string, Prisma.KolCreateManyInput>();
+  const collaborations: Prisma.CollaborationCreateManyInput[] = [];
 
   function statsFor(sheet: string) {
     const key = sheet || "CSV";
@@ -788,92 +787,90 @@ async function importRows(rows: Record<string, string>[], source: string): Promi
         ? followersFromSheet
         : followerByName.get(name) ?? followerByName.get(nameFromSheet) ?? 0;
 
-    try {
-      const kol = await prisma.kol.upsert({
-        where: { handle_platform: { handle, platform: platform! } },
-        create: {
-          name,
-          handle,
-          platform: platform!,
-          category: getRowField(row, "category") || null,
-          followers: followers > 0 ? followers : null,
-          email: getRowField(row, "email") || null,
-        },
-        update: {
-          name,
-          ...(getRowField(row, "category") ? { category: getRowField(row, "category") } : {}),
-          ...(followers > 0 ? { followers } : {}),
-          ...(getRowField(row, "email") ? { email: getRowField(row, "email") } : {}),
-        },
-      });
+    const kolKey = `${platform}\u0000${handle}`;
+    const existingKol = kolsByKey.get(kolKey);
+    const kolId = existingKol?.id ?? randomUUID();
+    kolsByKey.set(kolKey, {
+      id: kolId,
+      name,
+      handle,
+      platform: platform!,
+      category: getRowField(row, "category") || existingKol?.category || null,
+      followers:
+        followers > 0
+          ? Math.max(followers, existingKol?.followers ?? 0)
+          : existingKol?.followers ?? null,
+      email: getRowField(row, "email") || existingKol?.email || null,
+      notes: getRowField(row, "notes") || existingKol?.notes || null,
+    });
 
-      const existing = await prisma.collaboration.findFirst({
-        where: { postUrl },
-      });
+    collaborations.push({
+      id: randomUUID(),
+      kolId,
+      platform: platform!,
+      postUrl,
+      thumbnailUrl: getRowField(row, "thumbnailUrl") || null,
+      publishedAt: publishedAt!,
+      feature,
+      contentTheme,
+      likes: metrics.likes,
+      comments: metrics.comments,
+      saves: metrics.saves,
+      shares: metrics.shares,
+      totalEngagement: metrics.totalEngagement,
+      organicViews: metrics.organicViews,
+      er: parseErPercent(getRowField(row, "er")),
+      views: parseIntSafe(getRowField(row, "views")),
+      cpmJpy: parseFloatSafe(getRowField(row, "cpmJpy")),
+      cpmUsd: parseFloatSafe(getRowField(row, "cpmUsd")),
+      cpeJpy: parseFloatSafe(getRowField(row, "cpeJpy")),
+      cpeUsd: parseFloatSafe(getRowField(row, "cpeUsd")),
+      price,
+      currency,
+      viewsHidden: viewsHiddenFlag,
+      sourceSheet: sheet || null,
+      notes: getRowField(row, "notes") || null,
+    });
 
-      const data = {
-        kolId: kol.id,
-        platform: platform!,
-        postUrl,
-        thumbnailUrl: getRowField(row, "thumbnailUrl") || null,
-        publishedAt: publishedAt!,
-        feature,
-        contentTheme,
-        likes: metrics.likes,
-        comments: metrics.comments,
-        saves: metrics.saves,
-        shares: metrics.shares,
-        totalEngagement: metrics.totalEngagement,
-        organicViews: metrics.organicViews,
-        er: parseErPercent(getRowField(row, "er")),
-        views: parseIntSafe(getRowField(row, "views")),
-        cpmJpy: parseFloatSafe(getRowField(row, "cpmJpy")),
-        cpmUsd: parseFloatSafe(getRowField(row, "cpmUsd")),
-        cpeJpy: parseFloatSafe(getRowField(row, "cpeJpy")),
-        cpeUsd: parseFloatSafe(getRowField(row, "cpeUsd")),
-        price,
-        currency,
-        viewsHidden: viewsHiddenFlag,
-        sourceSheet: sheet || null,
-        notes: getRowField(row, "notes") || null,
-      };
-
-      if (existing) {
-        await prisma.collaboration.update({ where: { id: existing.id }, data });
-        rowsUpdated++;
-        const stats = statsFor(sheet);
-        stats.updated++;
-        stats.imported++;
-      } else {
-        await prisma.collaboration.create({ data: { ...data, kolId: kol.id } });
-        rowsAdded++;
-        const stats = statsFor(sheet);
-        stats.added++;
-        stats.imported++;
-      }
-    } catch (e) {
-      const prefix = sheet ? `[${sheet}] ` : "";
-      errors.push(`${prefix}第 ${line} 行：${e instanceof Error ? e.message : "导入失败"}`);
-      statsFor(sheet).failed++;
-    }
+    const stats = statsFor(sheet);
+    stats.added++;
+    stats.imported++;
   }
 
-  await prisma.importLog.create({
-    data: {
-      source,
-      rowsTotal: rows.length,
-      rowsAdded,
-      rowsUpdated,
-    },
-  });
+  const chunk = <T,>(items: T[], size: number): T[][] => {
+    const result: T[][] = [];
+    for (let i = 0; i < items.length; i += size) {
+      result.push(items.slice(i, i + size));
+    }
+    return result;
+  };
+
+  const kolRows = [...kolsByKey.values()];
+  const operations: Prisma.PrismaPromise<unknown>[] = [
+    prisma.collaboration.deleteMany(),
+    prisma.kol.deleteMany(),
+    ...chunk(kolRows, 100).map((data) => prisma.kol.createMany({ data })),
+    ...chunk(collaborations, 25).map((data) =>
+      prisma.collaboration.createMany({ data }),
+    ),
+    prisma.importLog.create({
+      data: {
+        source,
+        rowsTotal: rows.length,
+        rowsAdded: collaborations.length,
+        rowsUpdated: 0,
+      },
+    }),
+  ];
+  await prisma.$transaction(operations);
 
   // Follower scraping is slow and often times out on serverless (Vercel).
   // Keep it as a separate manual action via /api/kols/backfill-followers.
   return {
     rowsTotal: rows.length,
-    rowsAdded,
-    rowsUpdated,
-    rowsDeleted: deleted.count,
+    rowsAdded: collaborations.length,
+    rowsUpdated: 0,
+    rowsDeleted: previousCollabCount,
     errors,
     sheetSummary: [...sheetStats.entries()].map(([name, stats]) => ({
       name,
