@@ -8,7 +8,7 @@ import { KolFilters, defaultPostFilters, type FilterState } from "@/components/k
 import { SortableHeader, useSortState } from "@/components/sortable-header";
 import { displayPlatform, formatViews } from "@/lib/platform-display";
 import type { PostSortField } from "@/lib/types";
-import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
+import { formatCurrency, formatNumber } from "@/lib/utils";
 
 type Period = "month" | "week";
 
@@ -53,6 +53,11 @@ function monthLabelFromKey(key: string) {
 
 function monthKeyFromDate(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatPostDate(date: Date | string) {
+  const value = new Date(date);
+  return `${value.getFullYear()}/${value.getMonth() + 1}/${value.getDate()}`;
 }
 
 function filterBucketsWithinNow(
@@ -599,7 +604,9 @@ export function PostPerformanceClient() {
                     );
                     return (
                       <tr key={post.id} className="border-t border-mint-50 hover:bg-mint-50/40">
-                        <td className="whitespace-nowrap px-2 py-3">{formatDate(post.publishedAt)}</td>
+                        <td className="overflow-hidden whitespace-nowrap px-2 py-3">
+                          {formatPostDate(post.publishedAt)}
+                        </td>
                         <td className="overflow-hidden px-2 py-3">
                           <Link
                             href={`/kols/${post.kolId}`}

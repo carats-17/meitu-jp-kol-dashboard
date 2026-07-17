@@ -23,7 +23,7 @@ export function SortableHeader({
 }: Props) {
   const active = activeField === field;
   return (
-    <th className={`${compact ? "px-2 py-3" : "px-4 py-3"} ${align === "right" ? "text-right" : "text-left"}`}>
+    <th className={`${compact ? "overflow-hidden px-2 py-3" : "px-4 py-3"} ${align === "right" ? "text-right" : "text-left"}`}>
       <button
         type="button"
         onClick={() => onSort(field)}
